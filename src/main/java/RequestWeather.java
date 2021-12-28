@@ -1,3 +1,4 @@
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.HttpUrl;
@@ -6,6 +7,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class RequestWeather {
 
@@ -41,7 +43,7 @@ public class RequestWeather {
         return  cityId;
     }
 
-    static public String getOneDailyWeatherCityRequest (String cityId) throws IOException {
+    static public Weather getOneDailyWeatherCityRequest (String cityId, String cityName) throws IOException {
 
         HttpUrl httpUrl = new HttpUrl.Builder()
                 .scheme("http")
@@ -60,7 +62,18 @@ public class RequestWeather {
                 .build();
 
         Response response = okHttpClient.newCall(request).execute();
+        String responseJson = response.body().string();
 
-        return  response.body().string();
+        JsonNode dateNode = objectMapper.readTree(responseJson).at("/DailyForecasts/0/Date");
+        var date = dateNode.asText().split("T");
+        var temperatureNode  = objectMapper.readTree(responseJson).at("/DailyForecasts/0/Temperature/Minimum/Value");
+        var temperature = Math.round((temperatureNode.asDouble() - 32) / 1.8);
+        var textNode = objectMapper.readTree(responseJson).at("/Headline/Text");
+        var weatherText = textNode.asText();
+
+
+        Weather weather = new Weather(cityName, date[0], temperature, weatherText);
+
+        return weather;
     }
 }
